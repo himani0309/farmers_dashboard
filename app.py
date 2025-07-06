@@ -396,8 +396,9 @@ fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, textinfo="label+p
 fig_pie.update_layout(title="💧 Rainfall Season-wise Share")
 st.plotly_chart(fig_pie, use_container_width=True)
 
-# === Section 5: Yield vs District Avg ===
+# === Section 5: Yield vs District Avg (Baseline) ===
 st.subheader("🌾 Yield Comparison with District Average")
+st.markdown("**District Average based on 2015–2019 period**")
 baseline_years = df[df['year'].between(2015, 2019)]
 district_avg_yield = baseline_years['yield'].mean()
 fig_bar = go.Figure()
