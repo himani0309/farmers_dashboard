@@ -281,11 +281,9 @@
 
 
 # updated version 3
-
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-import os
 from PIL import Image
 
 # === Configuration ===
@@ -379,42 +377,7 @@ fig.update_layout(
 )
 st.plotly_chart(fig, use_container_width=True)
 
-# === Section 4: Bar Plot: 2020 vs Avg ===
-st.subheader("📊 Climate Comparison: 2020 vs Avg (Bar Plots)")
-
-recent_year = 2020
-past_df = df[df['year'].between(recent_year - 5, recent_year - 1)]
-current_df = df[df['year'] == recent_year]
-
-col1, col2 = st.columns(2)
-plot_cols = list(var_prefix_map.keys())
-
-for i, prefix in enumerate(plot_cols):
-    avg_vals = []
-    current_vals = []
-    for m in month_nums:
-        col_name = f"{prefix}_{m}"
-        if col_name in df.columns:
-            avg_vals.append(past_df[col_name].mean())
-            current_vals.append(current_df[col_name].values[0])
-
-    fig = go.Figure()
-    fig.add_bar(x=months, y=avg_vals, name="2015–2019 Avg", marker_color='gray')
-    fig.add_bar(x=months, y=current_vals, name=f"{recent_year}", marker_color='orange')
-
-    fig.update_layout(
-        barmode="group",
-        title=f"{var_prefix_map[prefix]} – {district}",
-        xaxis_title="Month",
-        yaxis_title=var_prefix_map[prefix],
-        height=400,
-        legend=dict(orientation="h")
-    )
-
-    with [col1, col2][i % 2]:
-        st.plotly_chart(fig, use_container_width=True)
-
-# === Section 5: Rainfall Pie Chart ===
+# === Section 4: Rainfall Pie Chart ===
 st.subheader("🌧️ Seasonal Rainfall Distribution")
 season_months = {
     "Pre-monsoon": [],
@@ -433,23 +396,25 @@ fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, textinfo="label+p
 fig_pie.update_layout(title="💧 Rainfall Season-wise Share")
 st.plotly_chart(fig_pie, use_container_width=True)
 
-# === Section 6: Yield vs District Avg ===
+# === Section 5: Yield vs District Avg ===
 st.subheader("🌾 Yield Comparison with District Average")
-district_avg_yield = yield_series.mean()
+baseline_years = df[df['year'].between(2015, 2019)]
+district_avg_yield = baseline_years['yield'].mean()
 fig_bar = go.Figure()
 fig_bar.add_trace(go.Bar(x=["Your Yield"], y=[current_yield], name="Your Yield", marker_color="green"))
-fig_bar.add_trace(go.Bar(x=["District Avg"], y=[district_avg_yield], name="District Avg", marker_color="gray"))
-fig_bar.update_layout(barmode="group", yaxis_title="tons/ha", title="📊 Your Yield vs District Average", height=400)
+fig_bar.add_trace(go.Bar(x=["District Avg (2015–2019)"], y=[district_avg_yield], name="District Avg", marker_color="gray"))
+fig_bar.update_layout(barmode="group", yaxis_title="tons/ha", title="📊 Your Yield vs District Baseline Avg", height=400)
 st.plotly_chart(fig_bar, use_container_width=True)
 
-# === Section 7: Emoji Rainfall Cards ===
+# === Section 6: Emoji Rainfall Cards ===
 st.subheader("🗓️ Monthly Rainfall Status")
 emoji_table = []
+baseline_rain = df[df['year'].between(2015, 2019)]
 for m in month_nums:
     col = f"precip_flux_{m}"
     month_label = months[int(m) - 6]
     curr = df_year[col].values[0]
-    avg = past_years[col].mean()
+    avg = baseline_rain[col].mean()
     deviation = (curr - avg) / (avg + 1e-5)
     if deviation < -0.2:
         emoji = "❌ Low"
