@@ -417,7 +417,7 @@ for i, prefix in enumerate(plot_cols):
 # === Section 5: Rainfall Pie Chart ===
 st.subheader("🌧️ Seasonal Rainfall Distribution")
 season_months = {
-    "Pre-monsoon": ['3', '4', '5'],
+    "Pre-monsoon": [],
     "Monsoon": ['6', '7', '8', '9'],
     "Post-monsoon": ['10', '11']
 }
