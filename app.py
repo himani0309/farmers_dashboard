@@ -405,18 +405,17 @@ district_avg_yield = baseline_years['yield'].mean()
 fig_bar = go.Figure()
 fig_bar.add_trace(go.Bar(x=["Your Yield"], y=[current_yield], name="Your Yield", marker_color="green"))
 fig_bar.add_trace(go.Bar(x=["District Avg (2015–2019)"], y=[district_avg_yield], name="District Avg", marker_color="gray"))
-fig_bar.update_layout(barmode="group", yaxis_title="tons/ha", title="📊 Your Yield vs District Baseline Avg", height=400)
+fig_bar.update_layout(barmode="group", yaxis_title="tons/ha", title="📈 Your Yield vs District Baseline Avg", height=400)
 st.plotly_chart(fig_bar, use_container_width=True)
 
 # === Section 6: Emoji Rainfall Cards ===
 st.subheader("🗓️ Monthly Rainfall Status")
 emoji_table = []
-baseline_rain = df[df['year'].between(2015, 2019)]
 for m in month_nums:
     col = f"precip_flux_{m}"
     month_label = months[int(m) - 6]
     curr = df_year[col].values[0]
-    avg = baseline_rain[col].mean()
+    avg = baseline_years[col].mean()
     deviation = (curr - avg) / (avg + 1e-5)
     if deviation < -0.2:
         emoji = "❌ Low"
@@ -430,25 +429,83 @@ st.table(pd.DataFrame(emoji_table, columns=["Month", "Rainfall", "Status"]))
 # === Section 7: Temperature vs Average Line Plot ===
 st.subheader("🌡️ Temperature vs Average (June–Dec)")
 temp_cols = [f"temp_{m}" for m in month_nums if f"temp_{m}" in df.columns]
-
 temp_curr = df_year[temp_cols].values.flatten()
-temp_avg = baseline_rain[temp_cols].mean().values
-
+temp_avg = baseline_years[temp_cols].mean().values
 fig_temp = go.Figure()
 fig_temp.add_trace(go.Scatter(x=months, y=temp_curr, name=f"{year} Temperature", mode="lines+markers", line=dict(color="red")))
 fig_temp.add_trace(go.Scatter(x=months, y=temp_avg, name="2015–2019 Avg", mode="lines+markers", line=dict(color="gray", dash="dot")))
-
 fig_temp.update_layout(title="🌡️ Monthly Temperature Comparison", xaxis_title="Month", yaxis_title="Temperature (°C)", height=400)
 st.plotly_chart(fig_temp, use_container_width=True)
 
 # === Section 8: Accumulated Rainfall Line Plot ===
 st.subheader("📈 Accumulated Rainfall Comparison")
 curr_rain = df_year[[f"precip_flux_{m}" for m in month_nums if f"precip_flux_{m}" in df.columns]].values.flatten()
-avg_rain = baseline_rain[[f"precip_flux_{m}" for m in month_nums if f"precip_flux_{m}" in df.columns]].mean().values
-
+avg_rain = baseline_years[[f"precip_flux_{m}" for m in month_nums if f"precip_flux_{m}" in df.columns]].mean().values
 fig_acc = go.Figure()
 fig_acc.add_trace(go.Scatter(x=months, y=pd.Series(curr_rain).cumsum(), mode="lines+markers", name="Current Year"))
 fig_acc.add_trace(go.Scatter(x=months, y=pd.Series(avg_rain).cumsum(), mode="lines+markers", name="2015–2019 Avg", line=dict(dash="dash")))
-
 fig_acc.update_layout(title="🌧️ Accumulated Rainfall (June–Dec)", xaxis_title="Month", yaxis_title="Cumulative Rainfall (mm)", height=400)
 st.plotly_chart(fig_acc, use_container_width=True)
+
+# === Section 9: Seasonal Rainfall Bar + Bullet Chart ===
+st.subheader("📊 Seasonal Rainfall — Bar & Bullet Charts")
+monsoon_sum = df_year[[f"precip_flux_{m}" for m in ['6', '7', '8', '9']]].sum(axis=1).values[0]
+post_sum = df_year[[f"precip_flux_{m}" for m in ['10', '11']]].sum(axis=1).values[0]
+monsoon_avg = baseline_years[[f"precip_flux_{m}" for m in ['6', '7', '8', '9']]].mean().sum()
+post_avg = baseline_years[[f"precip_flux_{m}" for m in ['10', '11']]].mean().sum()
+fig_bar = go.Figure()
+fig_bar.add_bar(x=["Monsoon"], y=[monsoon_sum], name=f"{year} Monsoon", marker_color="blue")
+fig_bar.add_bar(x=["Monsoon"], y=[monsoon_avg], name="Avg (2015–2019)", marker_color="lightblue")
+fig_bar.add_bar(x=["Post-monsoon"], y=[post_sum], name=f"{year} Post-monsoon", marker_color="green")
+fig_bar.add_bar(x=["Post-monsoon"], y=[post_avg], name="Avg (2015–2019)", marker_color="lightgreen")
+fig_bar.update_layout(barmode="group", title="📊 Total Rainfall per Season", yaxis_title="Rainfall (mm)", height=400)
+st.plotly_chart(fig_bar, use_container_width=True)
+fig_bullet = go.Figure()
+fig_bullet.add_trace(go.Indicator(
+    mode = "number+gauge+delta",
+    value = monsoon_sum,
+    domain = {'x': [0.1, 1], 'y': [0, 1]},
+    title = {'text': "Monsoon Rainfall vs Avg (mm)"},
+    delta = {'reference': monsoon_avg},
+    gauge = {
+        'shape': "bullet",
+        'axis': {'range': [None, max(monsoon_sum, monsoon_avg) + 200]},
+        'threshold': {
+            'line': {'color': "red", 'width': 2},
+            'thickness': 0.75,
+            'value': monsoon_avg
+        },
+        'bar': {'color': "blue"}
+    }
+))
+fig_bullet.update_layout(height=200)
+st.plotly_chart(fig_bullet, use_container_width=True)
+
+# === Section 10: Climate Comparison: 2020 vs Avg (Bar Plots) ===
+st.subheader("📊 Climate Comparison: 2020 vs Avg (Bar Plots)")
+recent_year = 2020
+past_df = df[df['year'].between(recent_year - 5, recent_year - 1)]
+current_df = df[df['year'] == recent_year]
+col1, col2 = st.columns(2)
+plot_cols = list(var_prefix_map.keys())
+for i, prefix in enumerate(plot_cols):
+    avg_vals = []
+    current_vals = []
+    for m in month_nums:
+        col_name = f"{prefix}_{m}"
+        if col_name in df.columns:
+            avg_vals.append(past_df[col_name].mean())
+            current_vals.append(current_df[col_name].values[0])
+    fig = go.Figure()
+    fig.add_bar(x=months, y=avg_vals, name="2015–2019 Avg", marker_color='gray')
+    fig.add_bar(x=months, y=current_vals, name=f"{recent_year}", marker_color='orange')
+    fig.update_layout(
+        barmode="group",
+        title=f"{var_prefix_map[prefix]} – {district}",
+        xaxis_title="Month",
+        yaxis_title=var_prefix_map[prefix],
+        height=400,
+        legend=dict(orientation="h")
+    )
+    with [col1, col2][i % 2]:
+        st.plotly_chart(fig, use_container_width=True)
