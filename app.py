@@ -481,7 +481,7 @@ fig_bullet.add_trace(go.Indicator(
 fig_bullet.update_layout(height=200)
 st.plotly_chart(fig_bullet, use_container_width=True)
 
-# === Section 10: Climate Comparison: 2020 vs Avg (Bar Plots) ===
+
 # === Section 10: Climate Comparison: [Selected Year] vs 2015–2019 Avg (Bar Plots) ===
 st.subheader(f"📊 Climate Comparison: {year} vs Avg (Bar Plots)")
 
