@@ -514,3 +514,31 @@ for i, prefix in enumerate(plot_cols):
 
     with [col1, col2][i % 2]:
         st.plotly_chart(fig, use_container_width=True)
+
+
+# === Section 11: Min Temperature vs Average Line Plot ===
+st.subheader("❄️ Min Temperature vs Average (June–Dec)")
+tmin_cols = [f"tmin_{m}" for m in month_nums if f"tmin_{m}" in df.columns]
+tmin_curr = df_year[tmin_cols].values.flatten()
+tmin_avg = baseline_years[tmin_cols].mean().values
+
+fig_tmin = go.Figure()
+fig_tmin.add_trace(go.Scatter(x=months, y=tmin_curr, name=f"{year} Min Temp", mode="lines+markers", line=dict(color="blue")))
+fig_tmin.add_trace(go.Scatter(x=months, y=tmin_avg, name="2015–2019 Avg", mode="lines+markers", line=dict(color="gray", dash="dot")))
+
+fig_tmin.update_layout(title="❄️ Monthly Min Temperature Comparison", xaxis_title="Month", yaxis_title="Min Temp (°C)", height=400)
+st.plotly_chart(fig_tmin, use_container_width=True)
+
+
+# === Section 12: Max Temperature vs Average Line Plot ===
+st.subheader("🔥 Max Temperature vs Average (June–Dec)")
+tmax_cols = [f"tmax_{m}" for m in month_nums if f"tmax_{m}" in df.columns]
+tmax_curr = df_year[tmax_cols].values.flatten()
+tmax_avg = baseline_years[tmax_cols].mean().values
+
+fig_tmax = go.Figure()
+fig_tmax.add_trace(go.Scatter(x=months, y=tmax_curr, name=f"{year} Max Temp", mode="lines+markers", line=dict(color="orange")))
+fig_tmax.add_trace(go.Scatter(x=months, y=tmax_avg, name="2015–2019 Avg", mode="lines+markers", line=dict(color="gray", dash="dot")))
+
+fig_tmax.update_layout(title="🔥 Monthly Max Temperature Comparison", xaxis_title="Month", yaxis_title="Max Temp (°C)", height=400)
+st.plotly_chart(fig_tmax, use_container_width=True)
