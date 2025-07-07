@@ -281,6 +281,7 @@
 
 
 # updated version 3
+
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -425,3 +426,29 @@ for m in month_nums:
         emoji = "✅ Normal"
     emoji_table.append((month_label, f"{curr:.1f} mm", emoji))
 st.table(pd.DataFrame(emoji_table, columns=["Month", "Rainfall", "Status"]))
+
+# === Section 7: Temperature vs Average Line Plot ===
+st.subheader("🌡️ Temperature vs Average (June–Dec)")
+temp_cols = [f"temp_{m}" for m in month_nums if f"temp_{m}" in df.columns]
+
+temp_curr = df_year[temp_cols].values.flatten()
+temp_avg = baseline_rain[temp_cols].mean().values
+
+fig_temp = go.Figure()
+fig_temp.add_trace(go.Scatter(x=months, y=temp_curr, name=f"{year} Temperature", mode="lines+markers", line=dict(color="red")))
+fig_temp.add_trace(go.Scatter(x=months, y=temp_avg, name="2015–2019 Avg", mode="lines+markers", line=dict(color="gray", dash="dot")))
+
+fig_temp.update_layout(title="🌡️ Monthly Temperature Comparison", xaxis_title="Month", yaxis_title="Temperature (°C)", height=400)
+st.plotly_chart(fig_temp, use_container_width=True)
+
+# === Section 8: Accumulated Rainfall Line Plot ===
+st.subheader("📈 Accumulated Rainfall Comparison")
+curr_rain = df_year[[f"precip_flux_{m}" for m in month_nums if f"precip_flux_{m}" in df.columns]].values.flatten()
+avg_rain = baseline_rain[[f"precip_flux_{m}" for m in month_nums if f"precip_flux_{m}" in df.columns]].mean().values
+
+fig_acc = go.Figure()
+fig_acc.add_trace(go.Scatter(x=months, y=pd.Series(curr_rain).cumsum(), mode="lines+markers", name="Current Year"))
+fig_acc.add_trace(go.Scatter(x=months, y=pd.Series(avg_rain).cumsum(), mode="lines+markers", name="2015–2019 Avg", line=dict(dash="dash")))
+
+fig_acc.update_layout(title="🌧️ Accumulated Rainfall (June–Dec)", xaxis_title="Month", yaxis_title="Cumulative Rainfall (mm)", height=400)
+st.plotly_chart(fig_acc, use_container_width=True)
