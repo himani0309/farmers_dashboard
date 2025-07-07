@@ -482,23 +482,29 @@ fig_bullet.update_layout(height=200)
 st.plotly_chart(fig_bullet, use_container_width=True)
 
 # === Section 10: Climate Comparison: 2020 vs Avg (Bar Plots) ===
-st.subheader("📊 Climate Comparison: 2020 vs Avg (Bar Plots)")
-recent_year = 2020
-past_df = df[df['year'].between(recent_year - 5, recent_year - 1)]
-current_df = df[df['year'] == recent_year]
+# === Section 10: Climate Comparison: [Selected Year] vs 2015–2019 Avg (Bar Plots) ===
+st.subheader(f"📊 Climate Comparison: {year} vs Avg (Bar Plots)")
+
+baseline_df = df[df['year'].between(2015, 2019)]
+current_df = df[df['year'] == year]
+
 col1, col2 = st.columns(2)
 plot_cols = list(var_prefix_map.keys())
+
 for i, prefix in enumerate(plot_cols):
     avg_vals = []
     current_vals = []
+
     for m in month_nums:
         col_name = f"{prefix}_{m}"
         if col_name in df.columns:
-            avg_vals.append(past_df[col_name].mean())
+            avg_vals.append(baseline_df[col_name].mean())
             current_vals.append(current_df[col_name].values[0])
+
     fig = go.Figure()
     fig.add_bar(x=months, y=avg_vals, name="2015–2019 Avg", marker_color='gray')
-    fig.add_bar(x=months, y=current_vals, name=f"{recent_year}", marker_color='orange')
+    fig.add_bar(x=months, y=current_vals, name=f"{year}", marker_color='orange')
+
     fig.update_layout(
         barmode="group",
         title=f"{var_prefix_map[prefix]} – {district}",
@@ -507,5 +513,6 @@ for i, prefix in enumerate(plot_cols):
         height=400,
         legend=dict(orientation="h")
     )
+
     with [col1, col2][i % 2]:
         st.plotly_chart(fig, use_container_width=True)
