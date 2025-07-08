@@ -396,10 +396,7 @@ st.plotly_chart(fig, use_container_width=True)
 # fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, textinfo="label+percent", marker=dict(colors=['#7FDBFF', '#0074D9', '#39CCCC']))])
 # fig_pie.update_layout(title="💧 Rainfall Season-wise Share")
 # st.plotly_chart(fig_pie, use_container_width=True)
-
-
-
-
+# 
 
 # === Section 4: Rainfall Pie Chart + Year-over-Year and Overall Change ===
 st.subheader("🌧️ Seasonal Rainfall Distribution")
@@ -449,7 +446,6 @@ if year > min_year:
 else:
     with col1:
         st.info("📌 No previous year data available for comparison.")
-
 # === Overall Change from First Year (RIGHT) ===
 if year > min_year:
     df_first = df[df["year"] == min_year]
@@ -470,14 +466,6 @@ if year > min_year:
 else:
     with col2:
         st.info("📌 Not applicable (first year selected).")
-
-
-
-
-
-
-
-
 
 # === Section 5: Yield vs District Avg (Baseline) ===
 st.subheader("🌾 Yield Comparison with District Average")
