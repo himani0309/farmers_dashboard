@@ -463,6 +463,79 @@ else:
 
 
 
+# === Section 4: Rainfall Pie Chart + Year-over-Year and Overall Change ===
+st.subheader("🌧️ Seasonal Rainfall Distribution")
+
+season_months = {
+    "Monsoon": ['6', '7', '8', '9'],
+    "Post-monsoon": ['10', '11']
+}
+
+# Current year rainfall
+curr_seasonal = {}
+curr_total_rain = 0
+for season, months in season_months.items():
+    val = df_year[[f"precip_flux_{m}" for m in months if f"precip_flux_{m}" in df_year.columns]].values[0].sum()
+    curr_seasonal[season] = val
+    curr_total_rain += val
+
+labels = list(curr_seasonal.keys())
+values = [round((v / curr_total_rain) * 100, 1) if curr_total_rain > 0 else 0 for v in curr_seasonal.values()]
+fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, textinfo="label+percent", marker=dict(colors=['#0074D9', '#2ECC40']))])
+fig_pie.update_layout(title="💧 Rainfall Season-wise Share")
+st.plotly_chart(fig_pie, use_container_width=True)
+
+# Comparison logic
+min_year = min(years)
+
+col1, col2 = st.columns(2)
+
+# === Previous Year Comparison (LEFT) ===
+if year > min_year:
+    prev_year = year - 1
+    df_prev = df[df["year"] == prev_year]
+    comp_data_prev = []
+
+    for season, months in season_months.items():
+        curr_val = df_year[[f"precip_flux_{m}" for m in months if f"precip_flux_{m}" in df_year.columns]].values[0].sum()
+        prev_val = df_prev[[f"precip_flux_{m}" for m in months if f"precip_flux_{m}" in df_prev.columns]].values[0].sum()
+        pct = ((curr_val - prev_val) / (prev_val + 1e-5)) * 100 if prev_val > 0 else 0
+        icon = "🔼" if pct > 5 else "🔽" if pct < -5 else "⚖️"
+        color = "green" if pct > 5 else "red" if pct < -5 else "gray"
+        comp_data_prev.append((season, f"{prev_val:.1f} mm", f"{curr_val:.1f} mm", f"<span style='color:{color}'>{icon} {abs(pct):.1f}% {'increase' if pct > 0 else 'decrease' if pct < 0 else 'no change'}</span>"))
+
+    with col1:
+        st.markdown(f"### 🔄 Change from {prev_year} to {year}")
+        st.markdown("#### 📊 Year-wise Comparison Table")
+        st.markdown(pd.DataFrame(comp_data_prev, columns=["Season", f"{prev_year} Rainfall", f"{year} Rainfall", "Change"]).to_html(escape=False, index=False), unsafe_allow_html=True)
+else:
+    with col1:
+        st.info("📌 No previous year data available for comparison.")
+
+# === Overall Change from First Year (RIGHT) ===
+if year > min_year:
+    df_first = df[df["year"] == min_year]
+    comp_data_base = []
+
+    for season, months in season_months.items():
+        curr_val = df_year[[f"precip_flux_{m}" for m in months if f"precip_flux_{m}" in df_year.columns]].values[0].sum()
+        base_val = df_first[[f"precip_flux_{m}" for m in months if f"precip_flux_{m}" in df_first.columns]].values[0].sum()
+        pct = ((curr_val - base_val) / (base_val + 1e-5)) * 100 if base_val > 0 else 0
+        icon = "🔼" if pct > 5 else "🔽" if pct < -5 else "⚖️"
+        color = "green" if pct > 5 else "red" if pct < -5 else "gray"
+        comp_data_base.append((season, f"{base_val:.1f} mm", f"{curr_val:.1f} mm", f"<span style='color:{color}'>{icon} {abs(pct):.1f}% {'increase' if pct > 0 else 'decrease' if pct < 0 else 'no change'}</span>"))
+
+    with col2:
+        st.markdown(f"### 🧮 Change from {min_year} to {year}")
+        st.markdown("#### 📈 Overall Comparison Table")
+        st.markdown(pd.DataFrame(comp_data_base, columns=["Season", f"{min_year} Rainfall", f"{year} Rainfall", "Change"]).to_html(escape=False, index=False), unsafe_allow_html=True)
+else:
+    with col2:
+        st.info("📌 Not applicable (first year selected).")
+
+
+
+
 
 # === Section 5: Yield vs District Avg (Baseline) ===
 st.subheader("🌾 Yield Comparison with District Average")
@@ -547,6 +620,7 @@ fig_bullet.add_trace(go.Indicator(
 ))
 fig_bullet.update_layout(height=200)
 st.plotly_chart(fig_bullet, use_container_width=True)
+
 # === Section 10: Climate Comparison: [Selected Year] vs 2015–2019 Avg (Bar Plots) ===
 st.subheader(f"📊 Climate Comparison: {year} vs Avg (Bar Plots)")
 
