@@ -10,7 +10,7 @@ st.set_page_config(page_title="Farmer Climate + Yield Dashboard", layout="wide")
 
 @st.cache_data
 def load_data():
-    xls = pd.ExcelFile("farmer_dashboard/Final_version_Monthly_District_Data.xlsx")
+    xls = pd.ExcelFile("Final_version_Monthly_District_Data.xlsx")
     return {sheet: xls.parse(sheet).dropna() for sheet in xls.sheet_names}
 
 data = load_data()
