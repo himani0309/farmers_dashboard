@@ -1,3 +1,5 @@
+
+# updated version 3
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -127,19 +129,32 @@ st.plotly_chart(fig_bar, use_container_width=True)
 # === Section 6: Emoji Rainfall Cards ===
 st.subheader("🗓️ Monthly Rainfall Status")
 emoji_table = []
+
 for m in month_nums:
     col = f"precip_flux_{m}"
-    month_label = months[int(m) - 6]
+    if col not in df_year.columns or f"precip_flux_{m}" not in baseline_years.columns:
+        continue
+
+    # Safe indexing: ensure m is between '6' and '12'
+    month_idx = int(m) - 6
+    if 0 <= month_idx < len(months):
+        month_label = months[month_idx]
+    else:
+        month_label = f"Month {m}"  # fallback label
+
     curr = df_year[col].values[0]
     avg = baseline_years[col].mean()
     deviation = (curr - avg) / (avg + 1e-5)
+
     if deviation < -0.2:
         emoji = "❌ Low"
     elif deviation > 0.2:
         emoji = "☔ High"
     else:
         emoji = "✅ Normal"
+
     emoji_table.append((month_label, f"{curr:.1f} mm", emoji))
+
 st.table(pd.DataFrame(emoji_table, columns=["Month", "Rainfall", "Status"]))
 
 # === Section 7: Temperature vs Average Line Plot ===
