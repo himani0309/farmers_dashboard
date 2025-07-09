@@ -98,119 +98,22 @@ st.plotly_chart(fig, use_container_width=True)
 
 # === Section 4: Rainfall Pie Chart ===
 st.subheader("🌧️ Seasonal Rainfall Distribution")
-
-# --- Season config ---
 season_months = {
     "Pre-monsoon": [],
     "Monsoon": ['6', '7', '8', '9'],
     "Post-monsoon": ['10', '11']
 }
-
-# --- Current year seasonal distribution for pie chart ---
-df_year = df[df['year'] == year]
 rainfall_distribution = {}
 total_rain = 0
-
 for season, months_list in season_months.items():
     total = df_year[[f"precip_flux_{m}" for m in months_list if f"precip_flux_{m}" in df_year.columns]].values[0].sum()
     rainfall_distribution[season] = total
     total_rain += total
-
 labels = list(rainfall_distribution.keys())
 values = [round((v / total_rain) * 100, 1) for v in rainfall_distribution.values()]
-
-# Pie chart (Center)
-fig_pie = go.Figure(data=[go.Pie(
-    labels=labels, values=values,
-    textinfo="label+percent",
-    marker=dict(colors=['#7FDBFF', '#0074D9', '#39CCCC'])
-)])
-fig_pie.update_layout(title=f"💧 Rainfall Share – {year}")
+fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, textinfo="label+percent", marker=dict(colors=['#7FDBFF', '#0074D9', '#39CCCC']))])
+fig_pie.update_layout(title="💧 Rainfall Season-wise Share")
 st.plotly_chart(fig_pie, use_container_width=True)
-
-# --- Columns for YoY (left) & Accumulated (right) comparison ---
-col1, col2 = st.columns(2)
-
-# === YoY Change from Previous Year (LEFT) ===
-if year > df['year'].min():
-    df_prev = df[df['year'] == year - 1]
-    comp_data_yoy = []
-
-    for season, months in season_months.items():
-        curr = df_year[[f"precip_flux_{m}" for m in months if f"precip_flux_{m}" in df.columns]].values[0].sum()
-        prev = df_prev[[f"precip_flux_{m}" for m in months if f"precip_flux_{m}" in df.columns]].values[0].sum()
-
-        pct = ((curr - prev) / (prev + 1e-5)) * 100 if prev > 0 else 0
-        icon = "🔼" if pct > 5 else "🔽" if pct < -5 else "⚖️"
-        color = "green" if pct > 5 else "red" if pct < -5 else "gray"
-
-        comp_data_yoy.append((
-            season,
-            f"{prev:.1f} mm",
-            f"{curr:.1f} mm",
-            f"<span style='color:{color}'>{icon} {abs(pct):.1f}% {'increase' if pct > 0 else 'decrease' if pct < 0 else 'no change'}</span>"
-        ))
-
-    with col1:
-        st.markdown(f"### 🔁 Change from Previous Year ({year-1} → {year})")
-        st.markdown(pd.DataFrame(comp_data_yoy, columns=[
-            "Season", f"{year-1}", f"{year}", "Change"
-        ]).to_html(escape=False, index=False), unsafe_allow_html=True)
-else:
-    with col1:
-        st.info("No previous year available.")
-
-# === Cumulative Change from Start Year to Current (RIGHT) ===
-min_year = df['year'].min()
-if year > min_year:
-    full_range = list(range(min_year, year + 1))
-    df_range = df[df['year'].isin(full_range)]
-    df_first = df[df['year'] == min_year]
-    comp_data_cumulative = []
-
-    for season, months in season_months.items():
-        curr_sum = df_range[[f"precip_flux_{m}" for m in months if f"precip_flux_{m}" in df.columns]].sum().sum()
-        baseline_val = df_first[[f"precip_flux_{m}" for m in months if f"precip_flux_{m}" in df_first.columns]].values[0].sum()
-        expected_baseline = baseline_val * len(full_range)
-
-        pct = ((curr_sum - expected_baseline) / (expected_baseline + 1e-5)) * 100 if expected_baseline > 0 else 0
-        icon = "🔼" if pct > 5 else "🔽" if pct < -5 else "⚖️"
-        color = "green" if pct > 5 else "red" if pct < -5 else "gray"
-
-        comp_data_cumulative.append((
-            season,
-            f"{expected_baseline:.1f} mm",
-            f"{curr_sum:.1f} mm",
-            f"<span style='color:{color}'>{icon} {abs(pct):.1f}% {'increase' if pct > 0 else 'decrease' if pct < 0 else 'no change'}</span>"
-        ))
-
-    with col2:
-        st.markdown(f"### 🧮 Cumulative Change (from {min_year} to {year})")
-        st.markdown(pd.DataFrame(comp_data_cumulative, columns=[
-            "Season", f"Expected ({min_year} × N)", f"Actual Total ({min_year}–{year})", "Change"
-        ]).to_html(escape=False, index=False), unsafe_allow_html=True)
-else:
-    with col2:
-        st.info("Not applicable (first year selected).")
-
-
-# st.subheader("🌧️ Seasonal Rainfall Distribution")
-# season_months = {
-#     "Pre-monsoon": [],
-#     "Monsoon": ['6', '7', '8', '9'],
-#     "Post-monsoon": ['10', '11']
-# }
-# rainfall_distribution = {}
-# total_rain = 0
-# for season, months_list in season_months.items():
-#     total = df_year[[f"precip_flux_{m}" for m in months_list if f"precip_flux_{m}" in df_year.columns]].values[0].sum()
-#     rainfall_distribution[season] = total
-#     total_rain += total
-# labels = list(rainfall_distribution.keys())
-# values = [round((v / total_rain) * 100, 1) for v in rainfall_distribution.values()]
-# fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, textinfo="label+percent", marker=dict(colors=['#7FDBFF', '#0074D9', '#39CCCC']))])
-# fig_pie.update_layout(title="💧 Rainfall Season-wise Share")
-# st.plotly_chart(fig_pie, use_container_width=True)
 
 # === Section 5: Yield vs District Avg (Baseline) ===
 st.subheader("🌾 Yield Comparison with District Average")
