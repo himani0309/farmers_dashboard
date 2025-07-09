@@ -98,23 +98,90 @@ st.plotly_chart(fig, use_container_width=True)
 
 
 # === Section 4: Rainfall Pie Chart ===
+# === Section 4: Rainfall Pie Chart + Comparison Tables ===
 st.subheader("🌧️ Seasonal Rainfall Distribution")
+
+# Define seasonal months
 season_months = {
-    "Pre-monsoon": [],
     "Monsoon": ['6', '7', '8', '9'],
     "Post-monsoon": ['10', '11']
 }
+
+# Current year rainfall per season
 rainfall_distribution = {}
 total_rain = 0
 for season, months_list in season_months.items():
     total = df_year[[f"precip_flux_{m}" for m in months_list if f"precip_flux_{m}" in df_year.columns]].values[0].sum()
     rainfall_distribution[season] = total
     total_rain += total
-labels = list(rainfall_distribution.keys())
-values = [round((v / total_rain) * 100, 1) for v in rainfall_distribution.values()]
-fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, textinfo="label+percent", marker=dict(colors=['#7FDBFF', '#0074D9', '#39CCCC']))])
+
+# Convert to percentage
+current_percent = {season: (rainfall_distribution[season] / total_rain) * 100 for season in rainfall_distribution}
+
+# --- Pie Chart ---
+labels = list(current_percent.keys())
+values = [round(v, 1) for v in current_percent.values()]
+fig_pie = go.Figure(data=[go.Pie(
+    labels=labels, values=values,
+    textinfo="label+percent",
+    marker=dict(colors=['#0074D9', '#2ECC40'])
+)])
 fig_pie.update_layout(title="💧 Rainfall Season-wise Share")
 st.plotly_chart(fig_pie, use_container_width=True)
+
+# --- Year-over-Year Table (Previous Year vs Current Year) ---
+left_table = None
+if year > df['year'].min():
+    prev_year_df = df[df['year'] == year - 1]
+    left_table = []
+    for season, months_list in season_months.items():
+        cols = [f"precip_flux_{m}" for m in months_list if f"precip_flux_{m}" in df.columns]
+        prev_total = prev_year_df[cols].values[0].sum()
+        prev_percent = (prev_total / prev_year_df[[f"precip_flux_{m}" for m in month_nums if f"precip_flux_{m}" in df.columns]].values[0].sum()) * 100
+        curr = current_percent[season]
+        change = curr - prev_percent
+        icon = "📈" if change > 1 else "📉" if change < -1 else "➡️"
+        left_table.append({
+            "Season": season,
+            f"{year - 1} (%)": f"{prev_percent:.1f}%",
+            f"Change": f"{change:+.1f}%",
+            "Trend": icon
+        })
+
+# --- Cumulative Average Table (1981 to Y-1 vs Y) ---
+right_table = None
+if year > df['year'].min() + 1:
+    past_years_df = df[df['year'].between(df['year'].min(), year - 1)]
+    right_table = []
+    for season, months_list in season_months.items():
+        season_cols = [f"precip_flux_{m}" for m in months_list if f"precip_flux_{m}" in df.columns]
+        all_cols = [f"precip_flux_{m}" for m in month_nums if f"precip_flux_{m}" in df.columns]
+        seasonal_sum = past_years_df[season_cols].sum(axis=1)
+        total_sum = past_years_df[all_cols].sum(axis=1)
+        cumulative_percent = (seasonal_sum / total_sum).mean() * 100
+        curr = current_percent[season]
+        change = curr - cumulative_percent
+        icon = "📈" if change > 1 else "📉" if change < -1 else "➡️"
+        right_table.append({
+            "Season": season,
+            "Avg (1981–{})".format(year - 1): f"{cumulative_percent:.1f}%",
+            f"{year} (%)": f"{curr:.1f}%",
+            "Change": f"{change:+.1f}%",
+            "Trend": icon
+        })
+
+# Display the comparison tables
+if left_table or right_table:
+    st.markdown("### 📊 Rainfall Trend Comparison")
+    col1, col2 = st.columns(2)
+    with col1:
+        if left_table:
+            st.markdown(f"**📅 {year-1} → {year} Comparison**")
+            st.table(pd.DataFrame(left_table))
+    with col2:
+        if right_table:
+            st.markdown(f"**📈 Cumulative Trend (1981 → {year})**")
+            st.table(pd.DataFrame(right_table))
 
 # === Section 5: Yield vs District Avg (Baseline) ===
 st.subheader("🌾 Yield Comparison with District Average")
