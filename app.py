@@ -76,7 +76,7 @@ st.subheader("📈 Monsoon Climate Trend (June–Dec)")
 
 fig = go.Figure()
 for prefix, label in var_prefix_map.items():
-    cols = [f"{prefix}{m}" for m in month_nums if f"{prefix}{m}" in df.columns]
+    cols = [f"{prefix}_{m}" for m in month_nums if f"{prefix}_{m}" in df.columns]
     if not cols: continue
     values = df_year[cols].values.flatten()
     fig.add_trace(go.Scatter(x=months[:len(values)], y=values, mode="lines+markers", name=label))
@@ -95,6 +95,7 @@ fig.update_layout(
     legend=dict(orientation="v"), height=600
 )
 st.plotly_chart(fig, use_container_width=True)
+
 
 # === Section 4: Rainfall Pie Chart ===
 st.subheader("🌧️ Seasonal Rainfall Distribution")
