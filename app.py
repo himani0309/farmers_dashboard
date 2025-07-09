@@ -183,7 +183,7 @@ st.plotly_chart(fig, use_container_width=True)
 #             st.markdown(f"**📈 Cumulative Trend (1981 → {year})**")
 #             st.table(pd.DataFrame(right_table))
 
-
+# === Section 4: Rainfall Pie Chart + Comparison Tables ===
 st.subheader("🌧️ Seasonal Rainfall Distribution")
 
 season_months = {
@@ -460,3 +460,93 @@ fig_tmax.add_trace(go.Scatter(x=months, y=tmax_avg, name="2015–2019 Avg", mode
 
 fig_tmax.update_layout(title="🔥 Monthly Max Temperature Comparison", xaxis_title="Month", yaxis_title="Max Temp (°C)", height=400)
 st.plotly_chart(fig_tmax, use_container_width=True)
+
+from fpdf import FPDF
+import os
+
+st.subheader("📄 Farmer-Friendly Summary Report")
+st.markdown("Generate a simple summary PDF in easy language for farmers to understand trends in climate and yield.")
+
+def generate_summary_text(df_year, df_prev, year, district):
+    lines = []
+
+    # Yield summary
+    yield_val = df_year["yield"].values[0]
+    lines.append(f"➡️ This year ({year}), the crop yield in **{district}** is **{yield_val:.2f} tons/ha**.")
+
+    # Rainfall comparison
+    monsoon_cols = [f"precip_flux_{m}" for m in ['6', '7', '8', '9']]
+    post_cols = [f"precip_flux_{m}" for m in ['10', '11']]
+
+    monsoon_curr = df_year[monsoon_cols].values[0].sum()
+    post_curr = df_year[post_cols].values[0].sum()
+
+    if df_prev is not None:
+        monsoon_prev = df_prev[monsoon_cols].values[0].sum()
+        post_prev = df_prev[post_cols].values[0].sum()
+        change_monsoon = monsoon_curr - monsoon_prev
+        change_post = post_curr - post_prev
+
+        monsoon_msg = "⬆️ increased" if change_monsoon > 0 else "⬇️ decreased"
+        post_msg = "⬆️ increased" if change_post > 0 else "⬇️ decreased"
+        lines.append(f"🌧️ Monsoon rainfall has {monsoon_msg} by **{abs(change_monsoon):.1f} mm** compared to last year.")
+        lines.append(f"🌦️ Post-monsoon rainfall has {post_msg} by **{abs(change_post):.1f} mm**.")
+
+    else:
+        lines.append("📅 No previous year data available for rainfall comparison.")
+
+    # Temperature
+    temp_cols = [f"temp_{m}" for m in ['6', '7', '8', '9', '10', '11', '12']]
+    temp_avg = df_year[temp_cols].mean(axis=1).values[0]
+    lines.append(f"🌡️ The average temperature this season was around **{temp_avg:.1f}°C**.")
+
+    # Conclusion
+    if yield_val < 2:
+        lines.append("⚠️ Yield is low. Try consulting experts and check irrigation or fertilizer issues.")
+    elif yield_val < 3:
+        lines.append("📉 Yield is average. Keep monitoring rainfall and temperature closely.")
+    else:
+        lines.append("✅ Good yield! Weather conditions seem favorable this season.")
+
+    lines.append("📘 This is an automated summary to help you understand your farming season better.")
+    return "\n\n".join(lines)
+
+def generate_pdf_summary(df, df_year, year, district, selected_state):
+    # Previous year data
+    df_prev = df[df['year'] == year - 1] if year > df['year'].min() else None
+
+    # Generate summary text
+    summary_text = generate_summary_text(df_year, df_prev, year, district)
+
+    # Create PDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    pdf.set_font("Arial", 'B', size=16)
+    pdf.cell(0, 10, f"📄 Farmer Summary Report – {district}, {selected_state} – {year}", ln=True)
+
+    pdf.set_font("Arial", size=12)
+    for line in summary_text.split("\n"):
+        pdf.multi_cell(0, 10, line)
+
+    # Save and provide download
+    filename = f"{district}_{year}_summary.pdf"
+    pdf.output(filename)
+
+    # Provide file to user
+    with open(filename, "rb") as f:
+        st.download_button(
+            label="📥 Download Summary PDF",
+            data=f,
+            file_name=filename,
+            mime="application/pdf"
+        )
+
+    # Cleanup
+    os.remove(filename)
+
+# Render button
+if st.button("📄 Generate PDF Summary"):
+    generate_pdf_summary(df, df_year, year, district, selected_state)
