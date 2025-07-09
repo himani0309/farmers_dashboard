@@ -461,27 +461,20 @@ fig_tmax.add_trace(go.Scatter(x=months, y=tmax_avg, name="2015–2019 Avg", mode
 fig_tmax.update_layout(title="🔥 Monthly Max Temperature Comparison", xaxis_title="Month", yaxis_title="Max Temp (°C)", height=400)
 st.plotly_chart(fig_tmax, use_container_width=True)
 
-
-
-from fpdf import FPDF
-import os
-
-st.subheader("Farmer-Friendly Summary Report")
-st.markdown("Generate a simple summary PDF in easy language for farmers to understand trends in climate and yield.")
-
 # === Section 13: Farmer-Friendly Summary Report ===
 import os
 from fpdf import FPDF
 import unicodedata
+import re
 
-st.subheader(" Farmer-Friendly Summary Report")
-st.markdown("Generate a simple summary PDF in easy language for farmers to understand trends in climate and yield.")
-
-# 🧹 Full Unicode Cleaner (Safe for FPDF)
+# 🧹 Cleaner for PDF-safe text
 def clean_for_pdf(text):
-    return ''.join(c for c in unicodedata.normalize('NFKD', text) if ord(c) < 128 and not unicodedata.combining(c))
+    text = unicodedata.normalize('NFKD', text)
+    text = ''.join(c for c in text if ord(c) < 128)
+    text = text.replace("°", " degrees ")
+    return re.sub(r'[^\x00-\x7F]+', '', text)
 
-# Summary Text Generator
+# 📝 Summary Text
 def generate_summary_text(df_year, df_prev, year, district):
     lines = []
 
@@ -510,29 +503,31 @@ def generate_summary_text(df_year, df_prev, year, district):
 
     temp_cols = [f"temp_{m}" for m in ['6', '7', '8', '9', '10', '11', '12']]
     temp_avg = df_year[temp_cols].mean(axis=1).values[0]
-    lines.append(f"The average temperature this season was around {temp_avg:.1f}°C.")
+    lines.append(f"The average temperature this season was around {temp_avg:.1f} degrees Celsius.")
 
     if yield_val < 2:
-        lines.append("Yield is low. Try consulting experts and check irrigation or fertilizer issues.")
+        lines.append("Yield is low. Please consult an expert or check your irrigation/fertilizer setup.")
     elif yield_val < 3:
-        lines.append("Yield is average. Keep monitoring rainfall and temperature closely.")
+        lines.append("Yield is moderate. Keep monitoring rainfall and temperature carefully.")
     else:
-        lines.append("Good yield! Weather conditions seem favorable this season.")
+        lines.append("Good yield! Conditions this season were favorable.")
 
-    lines.append("This is an automated summary to help you understand your farming season better.")
+    lines.append("This is an auto-generated summary to help understand seasonal trends easily.")
     return "\n\n".join(lines)
 
-# PDF Generator
+# 📤 PDF Generator Function
 def generate_pdf_summary(df, df_year, year, district, selected_state):
     df_prev = df[df['year'] == year - 1] if year > df['year'].min() else None
     summary_text = generate_summary_text(df_year, df_prev, year, district)
 
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", 'B', size=16)
+    pdf.set_font("Arial", size=12)
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    pdf.cell(0, 10, f"Farmer Summary Report – {district}, {selected_state} – {year}", ln=True)
+    pdf.set_font("Arial", 'B', size=16)
+    title = f"Farmer Summary Report – {district}, {selected_state} – {year}"
+    pdf.cell(0, 10, clean_for_pdf(title), ln=True)
 
     pdf.set_font("Arial", size=12)
     for line in summary_text.split("\n"):
@@ -544,7 +539,7 @@ def generate_pdf_summary(df, df_year, year, district, selected_state):
 
     with open(filename, "rb") as f:
         st.download_button(
-            label=" Download Summary PDF",
+            label="📥 Download Summary PDF",
             data=f,
             file_name=filename,
             mime="application/pdf"
@@ -552,6 +547,13 @@ def generate_pdf_summary(df, df_year, year, district, selected_state):
 
     os.remove(filename)
 
-#  Show Button
-if st.button(" Generate PDF Summary"):
-    generate_pdf_summary(df, df_year, year, district, selected_state)
+# 👉 Section 13 Header (only once!)
+st.subheader("📄 Farmer-Friendly Summary Report")
+st.markdown("Generate a simple summary PDF in easy language for farmers to understand trends in climate and yield.")
+
+# 👉 Button to trigger PDF
+if st.button("📄 Generate PDF Summary"):
+    try:
+        generate_pdf_summary(df, df_year, year, district, selected_state)
+    except UnicodeEncodeError:
+        st.error("⚠️ PDF generation failed due to unsupported characters. Emojis and special symbols are automatically removed.")
