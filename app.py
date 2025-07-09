@@ -470,21 +470,21 @@ st.markdown("Generate a simple summary PDF in easy language for farmers to under
 # === Section 13: Farmer-Friendly Summary Report ===
 import os
 from fpdf import FPDF
-import re
+import unicodedata
 
 st.subheader("📄 Farmer-Friendly Summary Report")
 st.markdown("Generate a simple summary PDF in easy language for farmers to understand trends in climate and yield.")
 
-# 🧹 Emoji Remover for PDF
-def remove_emojis(text):
-    return re.sub(r'[^\x00-\x7F]+', '', text)
+# 🧹 Full Unicode Cleaner (Safe for FPDF)
+def clean_for_pdf(text):
+    return ''.join(c for c in unicodedata.normalize('NFKD', text) if ord(c) < 128 and not unicodedata.combining(c))
 
-# 📄 Summary Text Generator
+# 📝 Summary Text Generator
 def generate_summary_text(df_year, df_prev, year, district):
     lines = []
 
     yield_val = df_year["yield"].values[0]
-    lines.append(f"➡️ This year ({year}), the crop yield in **{district}** is **{yield_val:.2f} tons/ha**.")
+    lines.append(f"This year ({year}), the crop yield in {district} is {yield_val:.2f} tons per hectare.")
 
     monsoon_cols = [f"precip_flux_{m}" for m in ['6', '7', '8', '9']]
     post_cols = [f"precip_flux_{m}" for m in ['10', '11']]
@@ -498,44 +498,43 @@ def generate_summary_text(df_year, df_prev, year, district):
         change_monsoon = monsoon_curr - monsoon_prev
         change_post = post_curr - post_prev
 
-        monsoon_msg = "⬆️ increased" if change_monsoon > 0 else "⬇️ decreased"
-        post_msg = "⬆️ increased" if change_post > 0 else "⬇️ decreased"
+        monsoon_msg = "increased" if change_monsoon > 0 else "decreased"
+        post_msg = "increased" if change_post > 0 else "decreased"
 
-        lines.append(f"🌧️ Monsoon rainfall has {monsoon_msg} by **{abs(change_monsoon):.1f} mm** compared to last year.")
-        lines.append(f"🌦️ Post-monsoon rainfall has {post_msg} by **{abs(change_post):.1f} mm**.")
+        lines.append(f"Monsoon rainfall has {monsoon_msg} by {abs(change_monsoon):.1f} mm compared to last year.")
+        lines.append(f"Post-monsoon rainfall has {post_msg} by {abs(change_post):.1f} mm.")
     else:
-        lines.append("📅 No previous year data available for rainfall comparison.")
+        lines.append("No previous year data available for rainfall comparison.")
 
     temp_cols = [f"temp_{m}" for m in ['6', '7', '8', '9', '10', '11', '12']]
     temp_avg = df_year[temp_cols].mean(axis=1).values[0]
-    lines.append(f"🌡️ The average temperature this season was around **{temp_avg:.1f}°C**.")
+    lines.append(f"The average temperature this season was around {temp_avg:.1f}°C.")
 
     if yield_val < 2:
-        lines.append("⚠️ Yield is low. Try consulting experts and check irrigation or fertilizer issues.")
+        lines.append("Yield is low. Try consulting experts and check irrigation or fertilizer issues.")
     elif yield_val < 3:
-        lines.append("📉 Yield is average. Keep monitoring rainfall and temperature closely.")
+        lines.append("Yield is average. Keep monitoring rainfall and temperature closely.")
     else:
-        lines.append("✅ Good yield! Weather conditions seem favorable this season.")
+        lines.append("Good yield! Weather conditions seem favorable this season.")
 
-    lines.append("📘 This is an automated summary to help you understand your farming season better.")
+    lines.append("This is an automated summary to help you understand your farming season better.")
     return "\n\n".join(lines)
 
-# 📤 PDF Generator
+# 📄 PDF Generator
 def generate_pdf_summary(df, df_year, year, district, selected_state):
     df_prev = df[df['year'] == year - 1] if year > df['year'].min() else None
     summary_text = generate_summary_text(df_year, df_prev, year, district)
 
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Arial", 'B', size=16)
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    pdf.set_font("Arial", 'B', size=16)
     pdf.cell(0, 10, f"Farmer Summary Report – {district}, {selected_state} – {year}", ln=True)
 
     pdf.set_font("Arial", size=12)
     for line in summary_text.split("\n"):
-        clean_line = remove_emojis(line)
+        clean_line = clean_for_pdf(line)
         pdf.multi_cell(0, 10, clean_line)
 
     filename = f"{district}_{year}_summary.pdf"
@@ -551,6 +550,6 @@ def generate_pdf_summary(df, df_year, year, district, selected_state):
 
     os.remove(filename)
 
-# 👉 Show Button
+# 🧭 Show Button
 if st.button("📄 Generate PDF Summary"):
     generate_pdf_summary(df, df_year, year, district, selected_state)
