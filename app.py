@@ -461,10 +461,12 @@ fig_tmax.add_trace(go.Scatter(x=months, y=tmax_avg, name="2015–2019 Avg", mode
 fig_tmax.update_layout(title="🔥 Monthly Max Temperature Comparison", xaxis_title="Month", yaxis_title="Max Temp (°C)", height=400)
 st.plotly_chart(fig_tmax, use_container_width=True)
 
+
+
 from fpdf import FPDF
 import os
 
-st.subheader("📄 Farmer-Friendly Summary Report")
+st.subheader("Farmer-Friendly Summary Report")
 st.markdown("Generate a simple summary PDF in easy language for farmers to understand trends in climate and yield.")
 
 # === Section 13: Farmer-Friendly Summary Report ===
@@ -472,14 +474,14 @@ import os
 from fpdf import FPDF
 import unicodedata
 
-st.subheader("📄 Farmer-Friendly Summary Report")
+st.subheader(" Farmer-Friendly Summary Report")
 st.markdown("Generate a simple summary PDF in easy language for farmers to understand trends in climate and yield.")
 
 # 🧹 Full Unicode Cleaner (Safe for FPDF)
 def clean_for_pdf(text):
     return ''.join(c for c in unicodedata.normalize('NFKD', text) if ord(c) < 128 and not unicodedata.combining(c))
 
-# 📝 Summary Text Generator
+# Summary Text Generator
 def generate_summary_text(df_year, df_prev, year, district):
     lines = []
 
@@ -520,7 +522,7 @@ def generate_summary_text(df_year, df_prev, year, district):
     lines.append("This is an automated summary to help you understand your farming season better.")
     return "\n\n".join(lines)
 
-# 📄 PDF Generator
+# PDF Generator
 def generate_pdf_summary(df, df_year, year, district, selected_state):
     df_prev = df[df['year'] == year - 1] if year > df['year'].min() else None
     summary_text = generate_summary_text(df_year, df_prev, year, district)
@@ -542,7 +544,7 @@ def generate_pdf_summary(df, df_year, year, district, selected_state):
 
     with open(filename, "rb") as f:
         st.download_button(
-            label="📥 Download Summary PDF",
+            label=" Download Summary PDF",
             data=f,
             file_name=filename,
             mime="application/pdf"
@@ -550,6 +552,6 @@ def generate_pdf_summary(df, df_year, year, district, selected_state):
 
     os.remove(filename)
 
-# 🧭 Show Button
-if st.button("📄 Generate PDF Summary"):
+#  Show Button
+if st.button(" Generate PDF Summary"):
     generate_pdf_summary(df, df_year, year, district, selected_state)
