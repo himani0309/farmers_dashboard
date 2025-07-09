@@ -99,15 +99,99 @@ st.plotly_chart(fig, use_container_width=True)
 
 # === Section 4: Rainfall Pie Chart ===
 # === Section 4: Rainfall Pie Chart + Comparison Tables ===
+# st.subheader("🌧️ Seasonal Rainfall Distribution")
+
+# # Define seasonal months
+# season_months = {
+#     "Monsoon": ['6', '7', '8', '9'],
+#     "Post-monsoon": ['10', '11']
+# }
+
+# # Current year rainfall per season
+# rainfall_distribution = {}
+# total_rain = 0
+# for season, months_list in season_months.items():
+#     total = df_year[[f"precip_flux_{m}" for m in months_list if f"precip_flux_{m}" in df_year.columns]].values[0].sum()
+#     rainfall_distribution[season] = total
+#     total_rain += total
+
+# # Convert to percentage
+# current_percent = {season: (rainfall_distribution[season] / total_rain) * 100 for season in rainfall_distribution}
+
+# # --- Pie Chart ---
+# labels = list(current_percent.keys())
+# values = [round(v, 1) for v in current_percent.values()]
+# fig_pie = go.Figure(data=[go.Pie(
+#     labels=labels, values=values,
+#     textinfo="label+percent",
+#     marker=dict(colors=['#0074D9', '#2ECC40'])
+# )])
+# fig_pie.update_layout(title="💧 Rainfall Season-wise Share")
+# st.plotly_chart(fig_pie, use_container_width=True)
+
+# # --- Year-over-Year Table (Previous Year vs Current Year) ---
+# left_table = None
+# if year > df['year'].min():
+#     prev_year_df = df[df['year'] == year - 1]
+#     left_table = []
+#     for season, months_list in season_months.items():
+#         cols = [f"precip_flux_{m}" for m in months_list if f"precip_flux_{m}" in df.columns]
+#         prev_total = prev_year_df[cols].values[0].sum()
+#         prev_percent = (prev_total / prev_year_df[[f"precip_flux_{m}" for m in month_nums if f"precip_flux_{m}" in df.columns]].values[0].sum()) * 100
+#         curr = current_percent[season]
+#         change = curr - prev_percent
+#         icon = "📈" if change > 1 else "📉" if change < -1 else "➡️"
+#         left_table.append({
+#             "Season": season,
+#             f"{year - 1} (%)": f"{prev_percent:.1f}%",
+#             f"Change": f"{change:+.1f}%",
+#             "Trend": icon
+#         })
+
+# # --- Cumulative Average Table (1981 to Y-1 vs Y) ---
+# right_table = None
+# if year > df['year'].min() + 1:
+#     past_years_df = df[df['year'].between(df['year'].min(), year - 1)]
+#     right_table = []
+#     for season, months_list in season_months.items():
+#         season_cols = [f"precip_flux_{m}" for m in months_list if f"precip_flux_{m}" in df.columns]
+#         all_cols = [f"precip_flux_{m}" for m in month_nums if f"precip_flux_{m}" in df.columns]
+#         seasonal_sum = past_years_df[season_cols].sum(axis=1)
+#         total_sum = past_years_df[all_cols].sum(axis=1)
+#         cumulative_percent = (seasonal_sum / total_sum).mean() * 100
+#         curr = current_percent[season]
+#         change = curr - cumulative_percent
+#         icon = "📈" if change > 1 else "📉" if change < -1 else "➡️"
+#         right_table.append({
+#             "Season": season,
+#             "Avg (1981–{})".format(year - 1): f"{cumulative_percent:.1f}%",
+#             f"{year} (%)": f"{curr:.1f}%",
+#             "Change": f"{change:+.1f}%",
+#             "Trend": icon
+#         })
+
+# # Display the comparison tables
+# if left_table or right_table:
+#     st.markdown("### 📊 Rainfall Trend Comparison")
+#     col1, col2 = st.columns(2)
+#     with col1:
+#         if left_table:
+#             st.markdown(f"**📅 {year-1} → {year} Comparison**")
+#             st.table(pd.DataFrame(left_table))
+#     with col2:
+#         if right_table:
+#             st.markdown(f"**📈 Cumulative Trend (1981 → {year})**")
+#             st.table(pd.DataFrame(right_table))
+
+
 st.subheader("🌧️ Seasonal Rainfall Distribution")
 
-# Define seasonal months
 season_months = {
     "Monsoon": ['6', '7', '8', '9'],
     "Post-monsoon": ['10', '11']
 }
 
-# Current year rainfall per season
+# --- Current Year Rainfall ---
 rainfall_distribution = {}
 total_rain = 0
 for season, months_list in season_months.items():
@@ -115,8 +199,7 @@ for season, months_list in season_months.items():
     rainfall_distribution[season] = total
     total_rain += total
 
-# Convert to percentage
-current_percent = {season: (rainfall_distribution[season] / total_rain) * 100 for season in rainfall_distribution}
+current_percent = {s: (rainfall_distribution[s] / total_rain) * 100 for s in rainfall_distribution}
 
 # --- Pie Chart ---
 labels = list(current_percent.keys())
@@ -129,8 +212,8 @@ fig_pie = go.Figure(data=[go.Pie(
 fig_pie.update_layout(title="💧 Rainfall Season-wise Share")
 st.plotly_chart(fig_pie, use_container_width=True)
 
-# --- Year-over-Year Table (Previous Year vs Current Year) ---
-left_table = None
+# --- Previous Year Comparison Table ---
+left_table_df, right_table_df = None, None
 if year > df['year'].min():
     prev_year_df = df[df['year'] == year - 1]
     left_table = []
@@ -147,9 +230,9 @@ if year > df['year'].min():
             f"Change": f"{change:+.1f}%",
             "Trend": icon
         })
+    left_table_df = pd.DataFrame(left_table)
 
-# --- Cumulative Average Table (1981 to Y-1 vs Y) ---
-right_table = None
+# --- Cumulative Trend from 1981 to Y-1 ---
 if year > df['year'].min() + 1:
     past_years_df = df[df['year'].between(df['year'].min(), year - 1)]
     right_table = []
@@ -169,19 +252,55 @@ if year > df['year'].min() + 1:
             "Change": f"{change:+.1f}%",
             "Trend": icon
         })
+    right_table_df = pd.DataFrame(right_table)
 
-# Display the comparison tables
-if left_table or right_table:
+# --- Display Both Tables ---
+if left_table_df is not None or right_table_df is not None:
     st.markdown("### 📊 Rainfall Trend Comparison")
     col1, col2 = st.columns(2)
     with col1:
-        if left_table:
+        if left_table_df is not None:
             st.markdown(f"**📅 {year-1} → {year} Comparison**")
-            st.table(pd.DataFrame(left_table))
+            st.dataframe(left_table_df.style.applymap(
+                lambda x: "color: green" if isinstance(x, str) and '+' in x else ("color: red" if '-' in x else "")
+                , subset=["Change"]
+            ))
     with col2:
-        if right_table:
+        if right_table_df is not None:
             st.markdown(f"**📈 Cumulative Trend (1981 → {year})**")
-            st.table(pd.DataFrame(right_table))
+            st.dataframe(right_table_df.style.applymap(
+                lambda x: "color: green" if isinstance(x, str) and '+' in x else ("color: red" if '-' in x else "")
+                , subset=["Change"]
+            ))
+
+# --- Optional: Download CSV ---
+if left_table_df is not None and right_table_df is not None:
+    csv_name = f"rainfall_trend_comparison_{year}.xlsx"
+    with pd.ExcelWriter(csv_name, engine='xlsxwriter') as writer:
+        left_table_df.to_excel(writer, index=False, sheet_name='Yearly Comparison')
+        right_table_df.to_excel(writer, index=False, sheet_name='Cumulative Trend')
+    with open(csv_name, "rb") as f:
+        st.download_button("📁 Download Rainfall Trend (Excel)", data=f, file_name=csv_name)
+
+# --- Optional: Monsoon % Line Plot over Years ---
+st.markdown("### 📈 Monsoon Share Trend Over Years")
+monsoon_series = []
+post_series = []
+years_all = sorted(df['year'].unique())
+for y in years_all:
+    df_y = df[df['year'] == y]
+    mon = df_y[[f"precip_flux_{m}" for m in ['6','7','8','9'] if f"precip_flux_{m}" in df.columns]].values[0].sum()
+    post = df_y[[f"precip_flux_{m}" for m in ['10','11'] if f"precip_flux_{m}" in df.columns]].values[0].sum()
+    total = mon + post
+    monsoon_series.append((y, (mon/total)*100))
+    post_series.append((y, (post/total)*100))
+
+fig_line = go.Figure()
+fig_line.add_trace(go.Scatter(x=[y for y,_ in monsoon_series], y=[p for _,p in monsoon_series], name="Monsoon %", mode="lines+markers", line=dict(color='blue')))
+fig_line.add_trace(go.Scatter(x=[y for y,_ in post_series], y=[p for _,p in post_series], name="Post-monsoon %", mode="lines+markers", line=dict(color='green')))
+fig_line.update_layout(title="🌧️ Monsoon vs Post-monsoon % Trend", xaxis_title="Year", yaxis_title="Percent of Seasonal Rainfall", height=400)
+st.plotly_chart(fig_line, use_container_width=True)
+
 
 # === Section 5: Yield vs District Avg (Baseline) ===
 st.subheader("🌾 Yield Comparison with District Average")
